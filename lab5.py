@@ -1,18 +1,7 @@
-"""
-Лабораторна робота №5, варіант 17.
-
-Класи:
-    Colour  - enum (RED, GREEN, BLUE, ...)
-    Point   - точка (x, y)
-    Polynom - багатокутник з довільною кількістю точок (об'єктів Point)
-"""
 import math
 from enum import Enum
 
 
-# ---------------------------------------------------------------------------
-# 1. Enum кольору
-# ---------------------------------------------------------------------------
 class Colour(Enum):
     RED = 1
     GREEN = 2
@@ -22,27 +11,27 @@ class Colour(Enum):
     WHITE = 6
 
 
-# ---------------------------------------------------------------------------
-# 2. Клас Point
-# ---------------------------------------------------------------------------
 class Point:
+    @staticmethod
+    def _validate_coord(value, name):
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise TypeError(f"Координата {name} має бути числом (int або float)")
+        return float(value)
+
     def __init__(self, x=0.0, y=0.0):
-        """Конструктор: створює точку з координатами x та y."""
-        self._x = x
-        self._y = y
+        self._x = self._validate_coord(x, "x")
+        self._y = self._validate_coord(y, "y")
 
     def __del__(self):
-        """Деструктор: викликається, коли об'єкт видаляється з пам'яті."""
         print(f"[Деструктор] Точку {self} видалено")
 
-    # --- функції доступу (getters / setters) ---
     @property
     def x(self):
         return self._x
 
     @x.setter
     def x(self, value):
-        self._x = value
+        self._x = self._validate_coord(value, "x")
 
     @property
     def y(self):
@@ -50,14 +39,13 @@ class Point:
 
     @y.setter
     def y(self, value):
-        self._y = value
+        self._y = self._validate_coord(value, "y")
 
-    # --- робота з точкою ---
     def distance_to(self, other):
-        """Евклідова відстань до іншої точки."""
+        if not isinstance(other, Point):
+            raise TypeError("Аргумент має бути об'єктом класу Point")
         return math.hypot(self._x - other._x, self._y - other._y)
 
-    # --- виведення ---
     def __str__(self):
         return f"({self._x}; {self._y})"
 
@@ -65,24 +53,18 @@ class Point:
         print(f"Точка: {self}")
 
 
-# ---------------------------------------------------------------------------
-# 3. Клас Polynom
-# ---------------------------------------------------------------------------
 class Polynom:
     def __init__(self, points=None, colour=Colour.RED):
-        """Конструктор: список точок (може бути порожнім) і колір."""
         self._points = list(points) if points else []
-        self._colour = colour
+        self.colour = colour
 
     def __del__(self):
-        """Деструктор."""
         print(f"[Деструктор] Багатокутник ({self._colour.name}) "
               f"з {len(self._points)} точок видалено")
 
-    # --- функції доступу ---
     @property
     def points(self):
-        return self._points
+        return list(self._points)
 
     @property
     def colour(self):
@@ -94,8 +76,9 @@ class Polynom:
             raise TypeError("colour має бути елементом enum Colour")
         self._colour = value
 
-    # --- додавання / видалення точок ---
     def add_point(self, point):
+        if not isinstance(point, Point):
+            raise TypeError("point має бути об'єктом класу Point")
         self._points.append(point)
 
     def remove_point(self, index):
@@ -103,25 +86,16 @@ class Polynom:
             return self._points.pop(index)
         raise IndexError("Немає точки з таким індексом")
 
-    # --- периметр ---
     def perimeter(self):
-        """Сума довжин усіх сторін; остання сторона замикає фігуру."""
         n = len(self._points)
         if n < 2:
             return 0.0
         total = 0.0
         for i in range(n):
-            # (i + 1) % n: для останньої точки наступною є перша
             total += self._points[i].distance_to(self._points[(i + 1) % n])
         return total
 
-    # --- найдовша діагональ ---
     def longest_diagonal(self):
-        """
-        Діагональ - відрізок між двома НЕсусідніми вершинами.
-        Повертає (довжина, точка1, точка2) або None, якщо діагоналей немає
-        (для фігур, що мають менше 4 вершин).
-        """
         n = len(self._points)
         if n < 4:
             return None
@@ -130,22 +104,18 @@ class Polynom:
             for j in range(i + 1, n):
                 adjacent = (j - i == 1) or (i == 0 and j == n - 1)
                 if adjacent:
-                    continue  # це сторона, а не діагональ
+                    continue
                 d = self._points[i].distance_to(self._points[j])
                 if best is None or d > best[0]:
                     best = (d, self._points[i], self._points[j])
         return best
 
-    # --- сортування ---
     def sort_by_x(self):
-        """Сортування за абсцисою (x), при рівності - за y."""
         self._points.sort(key=lambda p: (p.x, p.y))
 
     def sort_by_y(self):
-        """Сортування за ординатою (y), при рівності - за x."""
         self._points.sort(key=lambda p: (p.y, p.x))
 
-    # --- виведення ---
     def show(self):
         pts = ", ".join(str(p) for p in self._points)
         print(f"Багатокутник [{self._colour.name}], точок: "
@@ -163,9 +133,6 @@ class Polynom:
             print(f"Найдовша діагональ: {a} - {b}, довжина = {d:.3f}")
 
 
-# ---------------------------------------------------------------------------
-# 4. main - демонстрація
-# ---------------------------------------------------------------------------
 def main():
     print("=== 1. Створення точок (конструктор Point) ===")
     p1 = Point(0, 0)
@@ -179,7 +146,7 @@ def main():
     print("x =", p5.x, "y =", p5.y)
     p5.x = -2
     print("Після p5.x = -2 ->", p5)
-    p5.x = -1  # повертаємо назад
+    p5.x = -1
 
     print("\n=== 3. Створення багатокутника (конструктор Polynom) ===")
     poly = Polynom([p1, p2, p3, p4], Colour.GREEN)
@@ -205,10 +172,10 @@ def main():
     print("\n=== 8. Трикутник: діагоналей немає ===")
     tri = Polynom([Point(0, 0), Point(3, 0), Point(0, 4)], Colour.RED)
     tri.show()
-    tri.show_perimeter()          # 3 + 4 + 5 = 12
+    tri.show_perimeter()
     tri.show_longest_diagonal()
 
-    print("\n=== 9. Явний виклик деструктора (del) ===")
+    print("\n=== 9. Видалення посилання на об'єкт (del) ===")
     del tri
 
     print("\n=== Кінець програми ===")
